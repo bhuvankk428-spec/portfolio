@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhuvan K K | Interactive Portfolio</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Load Three.js for 3D guide -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        /* Base styles for the dark mode theme */
+        :root {
+            --primary-color: #55E6C1; /* Bright teal for accents (modern) */
+            --bg-color: #121212; /* Dark background */
+            --text-color: #F8F8F8; /* Light text */
+            --card-bg: #1F1F1F; /* Slightly lighter card background */
+            --secondary-text: #B0B0B0; /* Muted text */
+            --cursor-size: 10px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            cursor: none; /* Hide default cursor */
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Cursor Styling */
+        .cursor-dot, .cursor-outline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            border-radius: 50%;
+            z-index: 9999;
+            will-change: transform;
+            transition: transform 0.1s ease-out; /* Slower transition for lag effect on outline */
+        }
+
+        .cursor-dot {
+            width: var(--cursor-size);
+            height: var(--cursor-size);
+            background-color: var(--primary-color);
+            transform: translate(-50%, -50%);
+            transition: transform 0.05s ease-out; /* Quick response for the dot */
+        }
+
+        .cursor-outline {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--primary-color);
+            opacity: 0.5;
+            transform: translate(-50%, -50%);
+            transition: transform 0.2s ease-out, opacity 0.3s ease, border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+        }
+
+        /* Hover state for interactive elements */
+        .cursor-outline.grow {
+            width: 60px;
+            height: 60px;
+            opacity: 0.9;
+            border-color: #ffffff;
+        }
+        
+        /* Utility Classes for Animations */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1), transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Specific styles for the Project Cards to look modern */
+        .project-card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 1rem; /* Rounded corners */
+        }
+
+        .project-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(85, 230, 193, 0.15);
+        }
+        
+        .project-card a {
+            display: block;
+        }
+        
+        /* Hover line effect for link text */
+        .hover-underline {
+            position: relative;
+            display: inline-block;
+        }
+        .hover-underline::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+        .hover-underline:hover::after {
+            width: 100%;
+        }
+        
+        /* Mobile Navbar Menu styling */
+        .mobile-menu {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(100%);
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+        
+        /* Hero Text Animation */
+        #hero-headline {
+            animation: text-in 1.5s cubic-bezier(0.25, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        @keyframes text-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Simple button style */
+        .action-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(85, 230, 193, 0.2);
+        }
+        .action-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(85, 230, 193, 0.4);
+        }
+        
+        /* Smooth, layered background effect */
+        .section-background {
+            background-image: radial-gradient(circle at 50% 10%, #1a1a1a, var(--bg-color) 80%);
+        }
+
+        /* 3D Guide Canvas Styling */
+        #guide-canvas {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 150px; /* Smaller on desktop */
+            height: 150px;
+            z-index: 30; /* Below cursor, above content */
+            pointer-events: none; /* Important so it doesn't block interaction */
+            opacity: 0.6;
+            transition: opacity 0.5s;
+        }
+        
+        @media (max-width: 768px) {
+            #guide-canvas {
+                display: none; /* Hide on small screens to save space and performance */
+            }
+        }
+    </style>
+</head>
+
+<body class="selection:bg-gray-700 selection:text-white">
+    
+    <!-- Custom Cursor HTML -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <!-- 3D Guide Canvas -->
+    <canvas id="guide-canvas"></canvas>
+
+    <!-- Mobile Menu (Hidden by default) -->
+    <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 w-64 h-full bg-card-bg shadow-xl z-50 p-6 pt-20 flex flex-col space-y-4 md:hidden">
+        <a href="#home" class="text-lg hover:text-primary-color transition duration-300">Home</a>
+        <a href="#experience" class="text-lg hover:text-primary-color transition duration-300">Experience</a>
+        <a href="#projects" class="text-lg hover:text-primary-color transition duration-300">Projects</a>
+        <a href="#skills" class="text-lg hover:text-primary-color transition duration-300">Skills</a>
+        <a href="#contact" class="text-lg hover:text-primary-color transition duration-300">Contact</a>
+        <div class="h-px bg-gray-700 w-full mt-4"></div>
+        <a href="mailto:r7404819@gmail.com" class="text-sm text-secondary-text hover:text-primary-color transition duration-300 mt-4">r7404819@gmail.com</a>
+    </div>
+
+    <!-- Navbar -->
+    <header class="sticky top-0 z-40 bg-bg-color/95 backdrop-blur-sm shadow-lg border-b border-gray-800">
+        <nav class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#home" class="text-2xl font-extrabold tracking-widest text-primary-color hover-underline" data-cursor-text="Top" data-cursor-effect>
+                BKK<span class="text-white">.DEV</span>
+            </a>
+            <!-- Desktop Links -->
+            <div class="hidden md:flex space-x-8 text-secondary-text font-medium">
+                <a href="#experience" class="hover:text-primary-color transition duration-300 hover-underline" data-cursor-effect>Experience</a>
+                <a href="#projects" class="hover:text-primary-color transition duration-300 hover-underline" data-cursor-effect>Projects</a>
+                <a href="#skills" class="hover:text-primary-color transition duration-300 hover-underline" data-cursor-effect>Skills</a>
+                <a href="#contact" class="hover:text-primary-color transition duration-300 hover-underline" data-cursor-effect>Contact</a>
+            </div>
+            <!-- Mobile Menu Button -->
+            <button id="menu-toggle" class="md:hidden text-primary-color text-2xl p-2 rounded-lg hover:bg-card-bg transition duration-300" data-cursor-effect>
+                <i class="fas fa-bars"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        
+        <!-- 1. Hero Section -->
+        <section id="home" data-section="home" class="section-background min-h-screen flex items-center justify-center pt-20 pb-16">
+            <div class="max-w-4xl mx-auto px-6 text-center">
+                <p id="hero-pre-headline" class="text-lg md:text-xl text-primary-color mb-4 fade-in-up">Hello, I'm Bhuvan K K</p>
+                <h1 id="hero-headline" class="text-4xl sm:text-6xl md:text-8xl font-black leading-tight tracking-tighter mb-8 text-white">
+                    <span class="block">Frontend Developer</span>
+                    <span class="block text-secondary-text">UX Focused, React, Next.js.</span>
+                </h1>
+                <p id="hero-subtext" class="text-xl md:text-2xl max-w-2xl mx-auto mb-10 text-secondary-text fade-in-up" style="transition-delay: 0.5s;">
+                    Building responsive, accessible, and high-performance user interfaces with a strong emphasis on UI/UX best practices.
+                </p>
+                <a href="#projects" class="action-button inline-flex items-center bg-primary-color text-bg-color font-bold py-3 px-8 rounded-full text-lg hover:bg-primary-color/90 transition duration-300 fade-in-up" style="transition-delay: 0.8s;" data-cursor-text="View Work" data-cursor-effect>
+                    See My Work <i class="fas fa-arrow-right ml-3"></i>
+                </a>
+                <div class="flex justify-center space-x-6 mt-12 fade-in-up" style="transition-delay: 1.0s;">
+                    <a href="#" target="_blank" class="text-2xl text-secondary-text hover:text-primary-color transition duration-300" data-cursor-text="LinkedIn" data-cursor-effect><i class="fab fa-linkedin"></i></a>
+                    <a href="#" target="_blank" class="text-2xl text-secondary-text hover:text-primary-color transition duration-300" data-cursor-text="GitHub" data-cursor-effect><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Experience Section (INERASoftware) -->
+        <section id="experience" data-section="experience" class="py-24 md:py-32 bg-card-bg">
+            <div class="max-w-4xl mx-auto px-6">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-12 text-center text-white fade-in-up">Experience</h2>
+                
+                <!-- Experience Card -->
+                <div class="bg-bg-color p-8 md:p-12 rounded-2xl shadow-2xl fade-in-up">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl md:text-3xl font-bold text-primary-color">Software Engineer</h3>
+                        <span class="text-md text-secondary-text bg-card-bg px-3 py-1 rounded-full border border-gray-700">Sep 2025 - Present</span>
+                    </div>
+                    <p class="text-xl text-white mb-6">INERASoftware</p>
+                    <ul class="space-y-4 text-lg text-secondary-text list-disc pl-5">
+                        <li class="fade-in-up" style="transition-delay: 0.1s;">Collaborated with backend and design teams to build and optimize user-centric web applications using <strong class="text-white">Next.js, Tailwind CSS, and Figma</strong>.</li>
+                        <li class="fade-in-up" style="transition-delay: 0.2s;">Developed and refined key interface components (login, registration, finance forms), ensuring seamless functionality and <strong class="text-white">consistent UX across all devices</strong>.</li>
+                        <li class="fade-in-up" style="transition-delay: 0.3s;">Focused on crafting responsive, accessible, and high-performance interfaces while maintaining a strong emphasis on <strong class="text-white">UI/UX best practices</strong>.</li>
+                        <li class="fade-in-up" style="transition-delay: 0.4s;">Contributed to improving overall website performance, load speed, and code efficiency, enhancing both user satisfaction and <strong class="text-white">technical scalability</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Projects Section -->
+        <section id="projects" data-section="projects" class="py-24 md:py-32 section-background">
+            <div class="max-w-7xl mx-auto px-6">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-16 text-center text-white fade-in-up">Featured Projects</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+                    <!-- Project 1: Kavach.ai -->
+                    <div class="project-card fade-in-up">
+                        <a href="#" target="_blank" data-cursor-text="Explore" data-cursor-effect>
+                            <div class="p-8 md:p-10">
+                                <span class="text-sm font-semibold text-primary-color mb-2 block">AI/ML Web App</span>
+                                <h3 class="text-3xl font-bold text-white mb-4">Kavach.ai - Auto Insurance Claim Processing</h3>
+                                <p class="text-secondary-text mb-6">
+                                    Developed an AI-powered insurance system featuring policy suggester and claim checker modules, significantly streamlining operations.
+                                </p>
+                                <ul class="space-y-2 text-md text-secondary-text list-disc pl-5">
+                                    <li>Used Machine Learning & NLP for suitable policy matching.</li>
+                                    <li>Built a claim verification model for fraud detection and instant feedback.</li>
+                                    <li>Designed a user-friendly web interface with chatbot support.</li>
+                                    <li class="text-primary-color font-semibold">Reduced claim processing time by 40%.</li>
+                                </ul>
+                                <div class="mt-6 flex items-center space-x-3 text-sm font-medium">
+                                    <span class="px-3 py-1 bg-primary-color/20 text-primary-color rounded-full">Chatbot</span>
+                                    <span class="px-3 py-1 bg-primary-color/20 text-primary-color rounded-full">Web Interface</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Project 2: Student Attendance Management System -->
+                    <div class="project-card fade-in-up" style="transition-delay: 0.2s;">
+                        <a href="#" target="_blank" data-cursor-text="Explore" data-cursor-effect>
+                            <div class="p-8 md:p-10">
+                                <span class="text-sm font-semibold text-primary-color mb-2 block">Desktop Application</span>
+                                <h3 class="text-3xl font-bold text-white mb-4">Student Attendance Management System</h3>
+                                <p class="text-secondary-text mb-6">
+                                    A robust Python-Tkinter desktop application designed for efficient management of student attendance records in academic institutions.
+                                </p>
+                                <ul class="space-y-2 text-md text-secondary-text list-disc pl-5">
+                                    <li>Implemented full CRUD operations with optimized SQL database integration.</li>
+                                    <li>Added advanced search, filtering, and Excel export functionality.</li>
+                                    <li>Architecture prepared using Figma, supporting scalability.</li>
+                                    <li>Integrated real-time sound notifications and visual alerts.</li>
+                                </ul>
+                                <div class="mt-6 flex items-center space-x-3 text-sm font-medium">
+                                    <span class="px-3 py-1 bg-primary-color/20 text-primary-color rounded-full">Python</span>
+                                    <span class="px-3 py-1 bg-primary-color/20 text-primary-color rounded-full">Tkinter</span>
+                                    <span class="px-3 py-1 bg-primary-color/20 text-primary-color rounded-full">SQL</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Skills Section -->
+        <section id="skills" data-section="skills" class="py-24 md:py-32 bg-card-bg">
+            <div class="max-w-5xl mx-auto px-6">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-16 text-center text-white fade-in-up">Core Skills</h2>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+                    
+                    <!-- Skill 1: Next.js -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" data-cursor-text="Expert" data-cursor-effect>
+                        <i class="fas fa-bolt text-4xl text-primary-color mb-2"></i>
+                        <p class="text-lg font-semibold">Next.js</p>
+                    </div>
+                    
+                    <!-- Skill 2: React.js -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.1s;" data-cursor-text="Expert" data-cursor-effect>
+                        <i class="fab fa-react text-4xl text-primary-color mb-2"></i>
+                        <p class="text-lg font-semibold">React.js</p>
+                    </div>
+
+                    <!-- Skill 3: Tailwind CSS -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.2s;" data-cursor-text="Expert" data-cursor-effect>
+                        <i class="fas fa-wind text-4xl text-primary-color mb-2"></i>
+                        <p class="text-lg font-semibold">Tailwind CSS</p>
+                    </div>
+
+                    <!-- Skill 4: JavaScript -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.3s;" data-cursor-text="Advanced" data-cursor-effect>
+                        <i class="fab fa-js text-4xl text-primary-color mb-2"></i>
+                        <p class="text-lg font-semibold">JavaScript</p>
+                    </div>
+                    
+                    <!-- Skill 5: Python -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.4s;" data-cursor-text="Advanced" data-cursor-effect>
+                        <i class="fab fa-python text-4xl text-primary-color mb-2"></i>
+                        <p class="text-lg font-semibold">Python</p>
+                    </div>
+                    
+                    <!-- Skill 6: MongoDB -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.5s;" data-cursor-text="Experience" data-cursor-effect>
+                        <i class="fas fa-database text-4xl text-secondary-text mb-2"></i>
+                        <p class="text-lg font-semibold">MongoDB</p>
+                    </div>
+
+                    <!-- Skill 7: Node.js -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.6s;" data-cursor-text="Experience" data-cursor-effect>
+                        <i class="fab fa-node-js text-4xl text-secondary-text mb-2"></i>
+                        <p class="text-lg font-semibold">Node.js</p>
+                    </div>
+                    
+                    <!-- Skill 8: Figma -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.7s;" data-cursor-text="UX/UI" data-cursor-effect>
+                        <i class="fas fa-palette text-4xl text-secondary-text mb-2"></i>
+                        <p class="text-lg font-semibold">Figma</p>
+                    </div>
+                    
+                    <!-- Skill 9: Git/GitHub -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.8s;" data-cursor-text="Version Control" data-cursor-effect>
+                        <i class="fab fa-git-alt text-4xl text-secondary-text mb-2"></i>
+                        <p class="text-lg font-semibold">Git/GitHub</p>
+                    </div>
+                    
+                    <!-- Skill 10: SQL -->
+                    <div class="p-4 bg-bg-color rounded-xl text-center fade-in-up hover:scale-105 transition duration-300 shadow-lg border border-gray-700" style="transition-delay: 0.9s;" data-cursor-text="Database" data-cursor-effect>
+                        <i class="fas fa-cogs text-4xl text-secondary-text mb-2"></i>
+                        <p class="text-lg font-semibold">SQL</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Contact Section -->
+        <section id="contact" data-section="contact" class="py-24 md:py-32 section-background">
+            <div class="max-w-3xl mx-auto px-6 text-center">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-8 text-white fade-in-up">Let's Build Something Great.</h2>
+                <p class="text-xl text-secondary-text mb-12 fade-in-up" style="transition-delay: 0.2s;">
+                    I'm currently seeking new opportunities and challenges. Feel free to reach out for collaborations or just to say hello!
+                </p>
+                
+                <a href="mailto:r7404819@gmail.com" class="action-button inline-flex items-center bg-primary-color text-bg-color font-bold py-4 px-10 rounded-full text-xl hover:bg-primary-color/90 transition duration-300 fade-in-up" style="transition-delay: 0.4s;" data-cursor-text="Email Me" data-cursor-effect>
+                    r7404819@gmail.com
+                </a>
+
+                <p class="mt-8 text-lg text-secondary-text fade-in-up" style="transition-delay: 0.6s;">
+                    Or call me at: <span class="text-white font-semibold">+91 9036694320</span>
+                </p>
+                <div class="flex justify-center space-x-6 mt-8 fade-in-up" style="transition-delay: 0.8s;">
+                    <a href="#" target="_blank" class="text-4xl text-secondary-text hover:text-primary-color transition duration-300" data-cursor-text="LinkedIn" data-cursor-effect><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" target="_blank" class="text-4xl text-secondary-text hover:text-primary-color transition duration-300" data-cursor-text="GitHub" data-cursor-effect><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-8 border-t border-gray-800 text-center text-secondary-text text-sm">
+        <p>&copy; 2025 Bhuvan K K. Designed and Built with Passion.</p>
+    </footer>
+
+    <script>
+        window.onload = function() {
+            // --- 1. Custom Cursor Logic ---
+            const dot = document.querySelector('.cursor-dot');
+            const outline = document.querySelector('.cursor-outline');
+            const elementsToHover = 'a, button, [data-cursor-effect]';
+            let mouseX = 0, mouseY = 0;
+            let dotX = 0, dotY = 0;
+            let outlineX = 0, outlineY = 0;
+            const delay = 6; // Delay for the outline to create the "lag" effect
+
+            const animateCursor = () => {
+                // Calculate interpolated position for the dot (closer to the mouse)
+                dotX += (mouseX - dotX) * 0.2;
+                dotY += (mouseY - dotY) * 0.2;
+                dot.style.transform = `translate3d(${dotX}px, ${dotY}px, 0)`;
+
+                // Calculate interpolated position for the outline (more lag)
+                outlineX += (mouseX - outlineX) / delay;
+                outlineY += (mouseY - outlineY) / delay;
+                outline.style.transform = `translate3d(${outlineX}px, ${outlineY}px, 0)`;
+
+                requestAnimationFrame(animateCursor);
+            };
+
+            // Start the animation loop for the cursor
+            animateCursor();
+
+            // Mouse move listener
+            window.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+
+            // Hover effects listener
+            document.querySelectorAll(elementsToHover).forEach(el => {
+                el.addEventListener('mouseover', () => {
+                    outline.classList.add('grow');
+                    // Check for custom text attribute
+                    const customText = el.getAttribute('data-cursor-text');
+                    if (customText) {
+                        outline.innerHTML = `<span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-white">${customText}</span>`;
+                        outline.style.width = '70px';
+                        outline.style.height = '70px';
+                        outline.style.opacity = '1';
+                    }
+                });
+                el.addEventListener('mouseout', () => {
+                    outline.classList.remove('grow');
+                    outline.innerHTML = '';
+                    outline.style.width = '32px';
+                    outline.style.height = '32px';
+                    outline.style.opacity = '0.5';
+                });
+            });
+
+
+            // --- 2. Scroll-Triggered Animations (Intersection Observer for CSS) ---
+            const cssObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                rootMargin: '0px',
+                threshold: 0.2 // Trigger when 20% of the item is visible
+            });
+
+            document.querySelectorAll('.fade-in-up').forEach(element => {
+                cssObserver.observe(element);
+            });
+            
+            
+            // --- 3. Mobile Navigation Toggle ---
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            // Function to close the mobile menu
+            const closeMenu = () => {
+                mobileMenu.classList.remove('open');
+                document.body.style.overflow = ''; // Restore scrolling
+            };
+
+            menuToggle.addEventListener('click', () => {
+                const isOpen = mobileMenu.classList.toggle('open');
+                if (isOpen) {
+                    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                } else {
+                    document.body.style.overflow = ''; // Restore scrolling
+                }
+            });
+            
+            // Close menu when a link is clicked
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', closeMenu);
+            });
+
+
+            // --- 4. 3D Guide (Three.js) Logic ---
+            const canvas = document.getElementById('guide-canvas');
+            if (!canvas) return; // Exit if canvas is hidden/not available (e.g., on mobile)
+
+            let scene, camera, renderer;
+            let avatar, ambientLight, pointLight;
+            const sectionColors = {
+                'home': 0x55e6c1,      // Primary Teal
+                'experience': 0xffa07a, // Light Salmon
+                'projects': 0xad88f5,   // Purple
+                'skills': 0xfac898,     // Peach
+                'contact': 0xffffff     // White
+            };
+            let targetColor = new THREE.Color(sectionColors.home);
+            let currentColor = new THREE.Color(sectionColors.home);
+            let activeSection = 'home';
+            
+            // Initialize Three.js scene
+            const initThree = () => {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                
+                // Create the Avatar (a complex dodecahedron for an abstract look)
+                const geometry = new THREE.DodecahedronGeometry(1.5, 0); 
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: currentColor, 
+                    wireframe: true, 
+                    roughness: 0.5,
+                    metalness: 0.5
+                });
+                avatar = new THREE.Mesh(geometry, material);
+                scene.add(avatar);
+
+                // Lighting
+                ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+                scene.add(ambientLight);
+
+                pointLight = new THREE.PointLight(currentColor, 5, 50); 
+                pointLight.position.set(5, 5, 5);
+                scene.add(pointLight);
+
+                camera.position.z = 3;
+            };
+
+            // Animation Loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+
+                // Continuous slow rotation
+                avatar.rotation.x += 0.005;
+                avatar.rotation.y += 0.01;
+                
+                // Animate color transition
+                currentColor.lerp(targetColor, 0.05);
+                avatar.material.color.copy(currentColor);
+                pointLight.color.copy(currentColor);
+
+                renderer.render(scene, camera);
+            };
+
+            // Function to handle section change
+            const updateGuideColor = (sectionId) => {
+                if (activeSection === sectionId) return;
+                activeSection = sectionId;
+                const hexColor = sectionColors[sectionId] || sectionColors.home;
+                targetColor.set(hexColor);
+            };
+
+            // Section tracking (Intersection Observer for 3D guide)
+            const sections = document.querySelectorAll('[data-section]');
+            
+            const guideObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                        const sectionId = entry.target.getAttribute('data-section');
+                        updateGuideColor(sectionId);
+                    }
+                });
+            }, {
+                root: null,
+                threshold: 0.5 
+            });
+
+            sections.forEach(section => {
+                guideObserver.observe(section);
+            });
+            
+            // Handle resize
+            const onWindowResize = () => {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            };
+
+            if (canvas.clientWidth > 0) { // Only run if canvas is visible (desktop)
+                initThree();
+                animate();
+                window.addEventListener('resize', onWindowResize);
+            }
+        };
+    </script>
+
+</body>
+</html>

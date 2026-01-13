@@ -4,12 +4,7 @@ A modern, animated, and fully responsive portfolio website built using **HTML, T
 
 ---
 
-## 🚀 Live Demo
 
-(Replace with your URL)
-**[https://your-portfolio-link.com](https://your-portfolio-link.com)**
-
----
 
 ## ✨ Features
 

@@ -3,6 +3,7 @@ const menuToggle = document.querySelector(".menu-toggle");
 const siteNav = document.getElementById("site-nav");
 const navLinks = document.querySelectorAll(".site-nav a");
 const revealElements = document.querySelectorAll(".reveal");
+const aboutMotionGroups = document.querySelectorAll("[data-about-motion]");
 const projectTriggers = document.querySelectorAll("[data-project]");
 const modal = document.getElementById("project-modal");
 const modalCloseTargets = document.querySelectorAll("[data-close-modal]");
@@ -36,6 +37,7 @@ function setupNav() {
 function setupReveals() {
   if (!("IntersectionObserver" in window)) {
     revealElements.forEach((el) => el.classList.add("in-view"));
+    aboutMotionGroups.forEach((group) => group.classList.add("is-active"));
     return;
   }
 
@@ -51,6 +53,28 @@ function setupReveals() {
   );
 
   revealElements.forEach((el) => observer.observe(el));
+}
+
+function setupAboutMotion() {
+  if (!aboutMotionGroups.length) return;
+
+  if (!("IntersectionObserver" in window)) {
+    aboutMotionGroups.forEach((group) => group.classList.add("is-active"));
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries, obs) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-active");
+        obs.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.3, rootMargin: "0px 0px -24px 0px" }
+  );
+
+  aboutMotionGroups.forEach((group) => observer.observe(group));
 }
 
 function openModal() {
@@ -106,4 +130,5 @@ function setupProjectModal() {
 setLoadedState();
 setupNav();
 setupReveals();
+setupAboutMotion();
 setupProjectModal();
